@@ -30,6 +30,11 @@ for x in range(STEP, w, STEP):
     for y in range(N + 4, h - N - 4):
         if (y // 6) % 2 == 0:
             put(x, y, WHITE)
+# Solid white block near the top only, so a vertically flipped image is
+# recognisable: the block then shows up near the bottom edge.
+for y in range(40, 90):
+    for x in range(300, 500):
+        put(x, y, WHITE)
 for x in range(w):
     put(x, N + 2, WHITE)
     put(x, h - 1 - N - 2, WHITE)
