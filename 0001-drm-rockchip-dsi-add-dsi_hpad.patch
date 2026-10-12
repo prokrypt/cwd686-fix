@@ -20,18 +20,26 @@
  static int
  dw_mipi_dsi_encoder_atomic_check(struct drm_encoder *encoder,
  				 struct drm_crtc_state *crtc_state,
-@@ -775,6 +788,19 @@
+@@ -775,6 +788,27 @@
  	}
  
  	s->output_type = DRM_MODE_CONNECTOR_DSI;
 +
 +	if (dsi_hpad > 0) {
++		const struct drm_display_mode *mode = &crtc_state->mode;
 +		struct drm_display_mode *adj = &crtc_state->adjusted_mode;
 +
-+		if (adj->htotal - adj->hsync_end > dsi_hpad) {
-+			adj->hdisplay += dsi_hpad;
-+			adj->hsync_start += dsi_hpad;
-+			adj->hsync_end += dsi_hpad;
++		/*
++		 * Derive from the requested mode, not from adjusted_mode: this
++		 * check can run more than once on the same state.
++		 */
++		if (mode->htotal - mode->hsync_end > dsi_hpad) {
++			adj->hdisplay = mode->hdisplay + dsi_hpad;
++			adj->hsync_start = mode->hsync_start + dsi_hpad;
++			adj->hsync_end = mode->hsync_end + dsi_hpad;
++			adj->htotal = mode->htotal;
++			DRM_DEV_DEBUG_KMS(dsi->dev, "dsi_hpad=%d: %d %d %d %d\n", dsi_hpad,
++					  adj->hdisplay, adj->hsync_start, adj->hsync_end, adj->htotal);
 +		} else {
 +			DRM_DEV_ERROR(dsi->dev, "back porch too short for dsi_hpad=%d\n", dsi_hpad);
 +		}
