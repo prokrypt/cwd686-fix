@@ -1,0 +1,42 @@
+--- a/drivers/gpu/drm/rockchip/dw-mipi-dsi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw-mipi-dsi-rockchip.c
+@@ -751,6 +751,19 @@
+ 			mux ? dsi->cdata->lcdsel_lit : dsi->cdata->lcdsel_big);
+ }
+ 
++/*
++ * Some panels discard the first pixels of every line they receive. The
++ * ClockworkPi cwd686 (Chipone ICNL9707) on the DevTerm drops 5, which cuts
++ * off the top 5 rows of the rotated landscape picture. With dsi_hpad=N the
++ * line actually sent is widened by N pixels at the front, taken from the
++ * back porch, so the total line time and refresh rate stay the same. The VOP
++ * still positions the planes from the requested mode, so those N pixels are
++ * background (black) and userspace keeps seeing the panel's real width.
++ */
++static int dsi_hpad;
++module_param(dsi_hpad, int, 0444);
++MODULE_PARM_DESC(dsi_hpad, "Black pixels to send before each DSI video line (default 0)");
++
+ static int
+ dw_mipi_dsi_encoder_atomic_check(struct drm_encoder *encoder,
+ 				 struct drm_crtc_state *crtc_state,
+@@ -775,6 +788,19 @@
+ 	}
+ 
+ 	s->output_type = DRM_MODE_CONNECTOR_DSI;
++
++	if (dsi_hpad > 0) {
++		struct drm_display_mode *adj = &crtc_state->adjusted_mode;
++
++		if (adj->htotal - adj->hsync_end > dsi_hpad) {
++			adj->hdisplay += dsi_hpad;
++			adj->hsync_start += dsi_hpad;
++			adj->hsync_end += dsi_hpad;
++		} else {
++			DRM_DEV_ERROR(dsi->dev, "back porch too short for dsi_hpad=%d\n", dsi_hpad);
++		}
++	}
++
+ 	if (dsi->slave)
+ 		s->output_flags = ROCKCHIP_OUTPUT_DSI_DUAL;
+ 
