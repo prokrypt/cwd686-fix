@@ -55,6 +55,18 @@ It goes with a panel driver set back to the panel's real 480 width
 options rockchipdrm dsi_hpad=5
 ```
 
+## Newer kernels: Linux 7.2
+
+The fix is part of
+[devterm-a06-kernel](https://github.com/prokrypt/devterm-a06-kernel): all the
+A06 patches ported to Linux 7.2.10, with a PKGBUILD for Arch Linux ARM.
+
+If you port the cwd686 driver to a newer kernel yourself, also give its mode
+`DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC`. Since 6.x the Rockchip VOP only
+drives positive syncs when the mode asks for them. Without the flags the
+picture comes out ~5 lines late, so the left edge is cut off, with a black
+stripe on the right.
+
 ## Installing (DevTerm A06, linux-clockworkpi-a06 6.2.7-1)
 
 The modules must be built for your exact kernel. To build:
