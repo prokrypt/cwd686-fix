@@ -1,21 +1,21 @@
---- a/drivers/gpu/drm/rockchip/dw-mipi-dsi-rockchip.c
-+++ b/drivers/gpu/drm/rockchip/dw-mipi-dsi-rockchip.c
+--- a/drivers/gpu/drm/rockchip/dw-mipi-dsi-rockchip.c	2026-10-11 17:29:17.000000000 -0700
++++ b/drivers/gpu/drm/rockchip/dw-mipi-dsi-rockchip.c	2026-10-11 17:43:28.000000000 -0700
 @@ -751,6 +751,19 @@
  			mux ? dsi->cdata->lcdsel_lit : dsi->cdata->lcdsel_big);
  }
  
 +/*
-+ * Some panels discard the first pixels of every line they receive. The
++ * Some panels discard the last pixels of every line they receive. The
 + * ClockworkPi cwd686 (Chipone ICNL9707) on the DevTerm drops 5, which cuts
 + * off the top 5 rows of the rotated landscape picture. With dsi_hpad=N the
-+ * line actually sent is widened by N pixels at the front, taken from the
-+ * back porch, so the total line time and refresh rate stay the same. The VOP
-+ * still positions the planes from the requested mode, so those N pixels are
++ * line actually sent is widened by N pixels at the end, taken from the
++ * front porch, so the line start and the refresh rate stay the same. The VOP
++ * still sizes the planes from the requested mode, so those N pixels are
 + * background (black) and userspace keeps seeing the panel's real width.
 + */
 +static int dsi_hpad;
 +module_param(dsi_hpad, int, 0444);
-+MODULE_PARM_DESC(dsi_hpad, "Black pixels to send before each DSI video line (default 0)");
++MODULE_PARM_DESC(dsi_hpad, "Black pixels to send after each DSI video line (default 0)");
 +
  static int
  dw_mipi_dsi_encoder_atomic_check(struct drm_encoder *encoder,
@@ -33,15 +33,15 @@
 +		 * Derive from the requested mode, not from adjusted_mode: this
 +		 * check can run more than once on the same state.
 +		 */
-+		if (mode->htotal - mode->hsync_end > dsi_hpad) {
++		if (mode->hsync_start - mode->hdisplay > dsi_hpad) {
 +			adj->hdisplay = mode->hdisplay + dsi_hpad;
-+			adj->hsync_start = mode->hsync_start + dsi_hpad;
-+			adj->hsync_end = mode->hsync_end + dsi_hpad;
++			adj->hsync_start = mode->hsync_start;
++			adj->hsync_end = mode->hsync_end;
 +			adj->htotal = mode->htotal;
 +			DRM_DEV_DEBUG_KMS(dsi->dev, "dsi_hpad=%d: %d %d %d %d\n", dsi_hpad,
 +					  adj->hdisplay, adj->hsync_start, adj->hsync_end, adj->htotal);
 +		} else {
-+			DRM_DEV_ERROR(dsi->dev, "back porch too short for dsi_hpad=%d\n", dsi_hpad);
++			DRM_DEV_ERROR(dsi->dev, "front porch too short for dsi_hpad=%d\n", dsi_hpad);
 +		}
 +	}
 +
